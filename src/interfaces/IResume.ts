@@ -15,7 +15,7 @@
    /**
     * link to the version of the schema that can validate the resume
     */
-   $schema?: string;
+  //  $schema?: string;
    basics?: {
      name?: string;
      /**

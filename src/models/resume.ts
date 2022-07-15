@@ -2,10 +2,10 @@ import mongoose from "mongoose";
 import { IResume } from "../interfaces/IResume";
 
 const Resume = new mongoose.Schema({
-    $schema: {
-        type: String,
-        default: "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json"
-    },
+    // $schema: {
+    //     type: String,
+    //     default: "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json"
+    // },
     basics: {
         name: String,
         label: String,
@@ -35,6 +35,7 @@ const Resume = new mongoose.Schema({
         version: String,
         lastModified: Date
     }
-})
+}, 
+{ timestamps: true })
 
 export default mongoose.model<IResume & mongoose.Document>('Resume', Resume)
