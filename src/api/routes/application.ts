@@ -75,8 +75,8 @@ export default (app: Router) => {
                     n: Joi.number().integer(),
                     keyword: Joi.string().required()
                 })),
-                duties: Joi.array().items(Joi.string().required())
-            }),
+                duties: Joi.array().items(Joi.string())
+            }).min(1),
             params: Joi.object({
                 id: Joi.string()
             })
