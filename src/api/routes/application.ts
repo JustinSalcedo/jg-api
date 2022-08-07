@@ -9,10 +9,35 @@ const route = Router()
 export default (app: Router) => {
     app.use('/application', route)
 
+    route.get(
+        '/',
+        celebrate({
+            headers: Joi.object({
+                userid: Joi.string().required()
+            }).options({ allowUnknown: true })
+        }),
+        async (req: Request, res: Response, next: NextFunction) => {
+            const logger: Logger = Container.get('logger')
+            logger.debug('Calling /application')
+
+            try {
+                const { userid: userId } = req.headers
+                const applicationServiceInstance = Container.get(ApplicationService)
+                const userApplications = await applicationServiceInstance.GetApplicationsByUserID(userId as string)
+                if (!userApplications) return next(new Error('Undefined response'))
+                return res.status(200).json(userApplications)
+            } catch (e) {
+                logger.error('Error: %o', e)
+                return next(e)
+            }
+        }
+    )
+
     route.post(
         '/',
         celebrate({
             body: Joi.object({
+                userId: Joi.string().required(),
                 title: Joi.string().required(),
                 companyName: Joi.string().required(),
                 position: Joi.string().required(),
@@ -25,10 +50,39 @@ export default (app: Router) => {
             logger.debug('Calling /application')
 
             try {
-                const { title, companyName, position, website, jobDescription } = req.body
+                const { userId, title, companyName, position, website, jobDescription } = req.body
                 const applicationServiceInstance = Container.get(ApplicationService)
-                const newApplication = await applicationServiceInstance.CreateApplication({ title, companyName, position, website, jobDescription })
+                const newApplication = await applicationServiceInstance.CreateApplication(userId, { title, companyName, position, website, jobDescription })
+                if (!newApplication) return next(new Error('Undefined response'))
                 return res.status(201).json(newApplication)
+            } catch (e) {
+                logger.error('Error: %o', e)
+                return next(e)
+            }
+        }
+    )
+
+    route.get(
+        '/:id',
+        celebrate({
+            headers: Joi.object({
+                userid: Joi.string().required()
+            }).options({ allowUnknown: true }),
+            params: Joi.object({
+                id: Joi.string()
+            })
+        }),
+        async (req: Request, res: Response, next: NextFunction) => {
+            const logger: Logger = Container.get('logger')
+            logger.debug('Calling /application/:id')
+
+            try {
+                const { id: _id } = req.params
+                const { userid: userId } = req.headers
+                const applicationServiceInstance = Container.get(ApplicationService)
+                const applicationRecord = await applicationServiceInstance.GetApplication(userId as string, _id)
+                if (!applicationRecord) return next(new Error('Undefined response'))
+                return res.status(200).json(applicationRecord)
             } catch (e) {
                 logger.error('Error: %o', e)
                 return next(e)
@@ -40,6 +94,7 @@ export default (app: Router) => {
         '/:id',
         celebrate({
             body: Joi.object({
+                userId: Joi.string().required(),
                 title: Joi.string(),
                 companyName: Joi.string(),
                 position: Joi.string(),
@@ -56,9 +111,10 @@ export default (app: Router) => {
 
             try {
                 const { id: _id } = req.params
-                const { title, companyName, position, website, jobDescription } = req.body
+                const { userId, title, companyName, position, website, jobDescription } = req.body
                 const applicationServiceInstance = Container.get(ApplicationService)
-                const updatedApplication = await applicationServiceInstance.EditApplication({ _id, applicationUpdate: { title, companyName, position, website, jobDescription } })
+                const updatedApplication = await applicationServiceInstance.EditApplication(userId, { _id, applicationUpdate: { title, companyName, position, website, jobDescription } })
+                if (!updatedApplication) return next(new Error('Undefined response'))
                 return res.status(200).json(updatedApplication)
             } catch (e) {
                 logger.error('Error: %o', e)
@@ -71,12 +127,13 @@ export default (app: Router) => {
         '/:id/keywords',
         celebrate({
             body: Joi.object({
+                userId: Joi.string().required(),
                 skills: Joi.array().items(Joi.object({
                     n: Joi.number().integer(),
                     keyword: Joi.string().required()
                 })),
                 duties: Joi.array().items(Joi.string())
-            }).min(1),
+            }).min(2),
             params: Joi.object({
                 id: Joi.string()
             })
@@ -87,9 +144,10 @@ export default (app: Router) => {
 
             try {
                 const { id: _id } = req.params
-                const { skills: skillKeywords, duties: responsibilities } = req.body
+                const { userId, skills: skillKeywords, duties: responsibilities } = req.body
                 const applicationServiceInstance = Container.get(ApplicationService)
-                const updatedApplication = await applicationServiceInstance.AddLists({ _id, skillKeywords, responsibilities })
+                const updatedApplication = await applicationServiceInstance.AddLists(userId, { _id, skillKeywords, responsibilities })
+                if (!updatedApplication) return next(new Error('Undefined response'))
                 return res.status(201).json(updatedApplication)
             } catch (e) {
                 logger.error('Error: %o', e)

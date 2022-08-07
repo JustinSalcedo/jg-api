@@ -13,6 +13,7 @@ export default (app: Router) => {
         '/',
         celebrate({
             body: Joi.object({
+                userId: Joi.string().required(),
                 applicationId: Joi.string().required(),
                 resume: Joi.object().required()
             })
@@ -22,9 +23,10 @@ export default (app: Router) => {
             logger.debug('Calling /resume')
 
             try {
-                const { applicationId, resume } = req.body
+                const { userId, applicationId, resume } = req.body
                 const ResumeServiceInstance = Container.get(ResumeService)
-                const newResume = await ResumeServiceInstance.CreateResume({ applicationId, resume })
+                const newResume = await ResumeServiceInstance.CreateResume(userId, { applicationId, resume })
+                if (!newResume) return next(new Error('Undefined response'))
                 return res.status(201).json(newResume)
             } catch (e) {
                 logger.error('Error: %o', e)
@@ -36,6 +38,10 @@ export default (app: Router) => {
     route.get(
         '/:id',
         celebrate({
+            headers: Joi.object({
+                userid: Joi.string().required(),
+                applicationid: Joi.string().required()
+            }).options({ allowUnknown: true }),
             params: Joi.object({
                 id: Joi.string().required()
             })
@@ -45,9 +51,11 @@ export default (app: Router) => {
             logger.debug('Calling /resume/:id')
 
             try {
+                const { userid: userId, applicationid } = req.headers
                 const { id: _id } = req.params
                 const ResumeServiceInstance = Container.get(ResumeService)
-                const resume = await ResumeServiceInstance.GetResume({ _id })
+                const resume = await ResumeServiceInstance.GetResume(userId as string, { applicationId: applicationid as string, _id })
+                if (!resume) return next(new Error('Undefined response'))
                 return res.status(200).json(resume)
             } catch (e) {
                 logger.error('Error: %o', e)
@@ -60,6 +68,8 @@ export default (app: Router) => {
         '/:id',
         celebrate({
             body: Joi.object({
+                userId: Joi.string().required(),
+                applicationId: Joi.string().required(),
                 resume: Joi.object().required()
             }),
             params: Joi.object({
@@ -72,9 +82,10 @@ export default (app: Router) => {
 
             try {
                 const { id: _id } = req.params
-                const { resume } = req.body
+                const { userId, applicationId, resume } = req.body
                 const ResumeServiceInstance = Container.get(ResumeService)
-                const updatedResume = await ResumeServiceInstance.EditResume({ _id, resume })
+                const updatedResume = await ResumeServiceInstance.EditResume(userId, { applicationId,  _id, resume })
+                if (!updatedResume) return next(new Error('Undefined response'))
                 return res.status(200).json(updatedResume)
             } catch (e) {
                 logger.error('Error: %o', e)
