@@ -9,6 +9,82 @@ const route = Router()
 export default (app: Router) => {
     app.use('/resume', route)
 
+    // Master resumes
+    route.post(
+        '/master',
+        celebrate({
+            body: Joi.object({
+                userId: Joi.string().required(),
+                resume: Joi.object().required()
+            })
+        }),
+        async (req: Request, res: Response, next: NextFunction) => {
+            const logger: Logger = Container.get('logger')
+            logger.debug('Calling /resume/master')
+
+            try {
+                const { userId, resume } = req.body
+                const ResumeServiceInstance = Container.get(ResumeService)
+                const newResume = await ResumeServiceInstance.CreateMasterResume(userId, resume)
+                if (!newResume) return next(new Error('Undefined response'))
+                return res.status(201).json(newResume)
+            } catch (e) {
+                logger.error('Error: %o', e)
+                return next(e)
+            }
+        }
+    )
+
+    route.get(
+        '/master',
+        celebrate({
+            headers: Joi.object({
+                userid: Joi.string().required()
+            }).options({ allowUnknown: true })
+        }),
+        async (req: Request, res: Response, next: NextFunction) => {
+            const logger: Logger = Container.get('logger')
+            logger.debug('Calling /resume/master')
+
+            try {
+                const { userid: userId } = req.headers
+                const ResumeServiceInstance = Container.get(ResumeService)
+                const resume = await ResumeServiceInstance.GetMasterResume(userId as string)
+                if (!resume) return next(new Error('Undefined response'))
+                return res.status(200).json(resume)
+            } catch (e) {
+                logger.error('Error: %o', e)
+                return next(e)
+            }
+        }
+    )
+
+    route.patch(
+        '/master',
+        celebrate({
+            body: Joi.object({
+                userId: Joi.string().required(),
+                resume: Joi.object().required()
+            })
+        }),
+        async (req: Request, res: Response, next: NextFunction) => {
+            const logger: Logger = Container.get('logger')
+            logger.debug('Calling /resume/master')
+
+            try {
+                const { userId, resume } = req.body
+                const ResumeServiceInstance = Container.get(ResumeService)
+                const updatedResume = await ResumeServiceInstance.EditMasterResume(userId, resume)
+                if (!updatedResume) return next(new Error('Undefined response'))
+                return res.status(200).json(updatedResume)
+            } catch (e) {
+                logger.error('Error: %o', e)
+                return next(e)
+            }
+        }
+    )
+
+    // Regular resumes
     route.post(
         '/',
         celebrate({

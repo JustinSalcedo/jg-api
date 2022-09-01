@@ -18,7 +18,7 @@ export default class ResumeService {
 
     public async CreateResume(userId: string, { applicationId, resume }: { applicationId: string, resume: IResume }): Promise<IResume> {
         try {
-            const validUser = await this.isValidUser(userId, applicationId)
+            const validUser = await this.isValidUser({userId, applicationId})
             if (!validUser) return
 
             const resumeRecord = await this.resumeModel.create(resume)
@@ -32,7 +32,7 @@ export default class ResumeService {
 
     public async GetResume(userId: string, { applicationId, _id }: { applicationId: string, _id: string }): Promise<IResume> {
         try {
-            const validUser = await this.isValidUser(userId, applicationId, _id)
+            const validUser = await this.isValidUser({userId, applicationId, resumeId: _id})
             if (!validUser) return
 
             return this.resumeModel.findById(_id)
@@ -43,7 +43,7 @@ export default class ResumeService {
 
     public async EditResume(userId: string, { applicationId, _id, resume }: { applicationId: string, _id: string, resume: Partial<IResume> }): Promise<IResume> {
         try {
-            const validUser = await this.isValidUser(userId, applicationId, _id)
+            const validUser = await this.isValidUser({userId, applicationId, resumeId: _id})
             if (!validUser) return
 
             delete resume._id
@@ -55,7 +55,48 @@ export default class ResumeService {
         }
     }
 
-    private async isValidUser(userId: string, applicationId?: string, resumeId?: string) {
+    public async CreateMasterResume(userId: string, resume: IResume) {
+        try {
+            const validUser = await this.isValidUser({userId})
+            if (!validUser) return
+
+            const resumeRecord = await this.resumeModel.create(resume)
+            await this.userModel.findByIdAndUpdate(userId, { masterResume: resumeRecord.id }, { new: true })
+            this.logger.silly('Master resume added')
+            return resumeRecord
+        } catch (error) {
+            throw error
+        }
+    }
+
+    public async GetMasterResume(userId: string): Promise<IResume> {
+        try {
+            const validUser = await this.isValidUser({userId, isMasterResume: true})
+            if (!validUser) return
+
+            return this.resumeModel.findById(this.userRecord.masterResume)
+        } catch (error) {
+            throw error
+        }
+    }
+
+    public async EditMasterResume(userId: string, resume: Partial<IResume> ) {
+        try {
+            const validUser = await this.isValidUser({userId, isMasterResume: true})
+            if (!validUser) return
+
+            delete resume._id
+            const updatedResume = await this.resumeModel.findByIdAndUpdate(this.userRecord.masterResume, resume, { new: true })
+            this.logger.silly('Master resume edited')
+            return updatedResume
+        } catch (error) {
+            throw error
+        }
+    }
+
+    private async isValidUser({ userId, applicationId, resumeId, isMasterResume }: {
+        userId: string, applicationId?: string, resumeId?: string, isMasterResume?: boolean
+    }) {
         try {
             const userRecord = await this.userModel.findById(userId)
             if (!userRecord) throw new Error('User not found')
@@ -73,6 +114,9 @@ export default class ResumeService {
                     since ObjectId() doesn't parse exact string */
                     validUser = validUser && (applicationRecord.resume && applicationRecord.resume == resumeId)
                 }
+            }
+            if (isMasterResume) {
+                validUser = validUser && !!userRecord.masterResume
             }
             return validUser
         } catch (error) {
