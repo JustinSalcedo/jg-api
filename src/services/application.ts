@@ -31,7 +31,8 @@ export default class ApplicationService {
             const validUser = await this.isValidUser(userId)
             if (!validUser) return
 
-            const allApplications = await this.applicationModel.find({ id: { $in: this.userRecord.applications } })
+            /* We MUST use _id to query and filter records, and id to parse the ObjectID to string */
+            const allApplications = await this.applicationModel.find({ _id: { $in: this.userRecord.applications } })
             return allApplications
         } catch (error) {
             throw error
